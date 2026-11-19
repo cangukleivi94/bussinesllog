@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarZone</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #0f111a;
+    color: #e0e0e0; min-height: 100vh; font-size: 14px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  
+  .logo-bar { display: flex; align-items: center; justify-content: center; padding: 16px 0 24px; }
+  .logo { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 900; letter-spacing: 2px; }
+  .logo-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; box-shadow: 0 4px 15px rgba(243,156,18,0.4);
+  }
+  .logo-text { background: linear-gradient(90deg, #f39c12, #ffd166); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .logo-sub { font-size: 11px; color: #888; letter-spacing: 3px; text-align: center; margin-top: 6px; }
+  
+  .hamburger {
+    display: none;
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: #000; border: none; border-radius: 10px;
+    width: 48px; height: 48px; font-size: 24px; cursor: pointer;
+    align-items: center; justify-content: center;
+    box-shadow: 0 4px 15px rgba(243,156,18,0.4);
+    font-weight: bold;
+  }
+  .hamburger:hover { transform: scale(1.05); }
+  
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tabs button {
+    flex: 1; min-width: 100px; padding: 10px 12px;
+    background: #1e1e2a; color: #aaa; border: 1px solid #2e2e3e;
+    border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 12px;
+    transition: all 0.2s;
+  }
+  .tabs button:hover { border-color: #f39c12; color: #f39c12; background: #22222e; }
+  .tabs button.active {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: #000; border-color: #f39c12;
+    box-shadow: 0 4px 15px rgba(243,156,18,0.4);
+  }
+  
+  .mobile-menu {
+    display: none; position: fixed; top: 0; left: 0; right: 0;
+    background: #13131b; padding: 24px; z-index: 999;
+    border-bottom: 3px solid #f39c12; box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    max-height: 100vh; overflow-y: auto;
+  }
+  .mobile-menu.open { display: block; }
+  .mobile-menu button {
+    width: 100%; padding: 14px; margin-bottom: 10px;
+    background: #1e1e2a; color: #e0e0e0; border: 1px solid #2e2e3e;
+    border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px;
+    text-align: left;
+  }
+  .mobile-menu button.active {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: #000; border-color: #f39c12;
+  }
+  .mobile-menu .close-menu {
+    background: #e74c3c; color: #fff; text-align: center;
+    border: none; margin-top: 10px;
+  }
+  .mobile-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7); z-index: 998;
+  }
+  .mobile-overlay.open { display: block; }
+  
+  @media (max-width: 700px) {
+    .hamburger { display: flex; }
+    .tabs { display: none; }
+    .logo-bar { justify-content: space-between; padding-left: 12px; padding-right: 12px; }
+    .logo { font-size: 24px; }
+    .logo-icon { width: 40px; height: 40px; font-size: 22px; }
+  }
+  
+  .card { background: #1a1a24; padding: 18px; border-radius: 12px; margin-bottom: 16px; border: 1px solid #2e2e3e; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+  .card h3 { color: #f39c12; font-size: 16px; margin-bottom: 12px; border-bottom: 1px solid #2e2e3e; padding-bottom: 10px; }
+  
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  label { display: block; margin-bottom: 6px; font-size: 11px; color: #888; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+  input, select {
+    width: 100%; padding: 10px; border-radius: 8px;
+    border: 1px solid #2e2e3e; background: #13131b; color: #fff;
+    font-size: 13px; transition: border 0.2s, box-shadow 0.2s;
+  }
+  input:focus, select:focus { outline: none; border-color: #f39c12; box-shadow: 0 0 0 3px rgba(243,156,18,0.15); }
+  
+  .produkt-select-container { position: relative; }
+  .produkt-input {
+    width: 100%; padding: 10px 30px 10px 10px; border-radius: 8px;
+    border: 1px solid #2e2e3e; background: #13131b; color: #fff;
+    font-size: 13px; cursor: pointer;
+  }
+  .produkt-input:focus { outline: none; border-color: #f39c12; box-shadow: 0 0 0 3px rgba(243,156,18,0.15); }
+  .produkt-input::placeholder { color: #666; }
+  .produkt-arrow {
+    position: absolute; right: 12px; top: 50%;
+    transform: translateY(-50%); color: #f39c12;
+    pointer-events: none; font-size: 12px;
+  }
+  .produkt-dropdown {
+    display: none; position: absolute; top: 100%; left: 0; right: 0;
+    background: #13131b; border: 2px solid #f39c12; border-radius: 10px;
+    margin-top: 6px; max-height: 300px; overflow-y: auto;
+    z-index: 100; box-shadow: 0 8px 30px rgba(0,0,0,0.9);
+  }
+  .produkt-dropdown.open { display: block; }
+  .produkt-dropdown input {
+    width: 100%; padding: 12px; border: none; border-bottom: 1px solid #2e2e3e;
+    border-radius: 0; background: #1a1a24; font-size: 13px;
+  }
+  .produkt-dropdown input:focus { border-color: #f39c12; box-shadow: none; }
+  .produkt-option {
+    padding: 12px 14px; cursor: pointer; font-size: 13px;
+    border-bottom: 1px solid #1e1e2a; transition: background 0.15s;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .produkt-option:last-child { border-bottom: none; }
+  .produkt-option:hover { background: #22222e; }
+  .produkt-option .emri { color: #e0e0e0; }
+  .produkt-option .histori {
+    font-size: 10px; color: #f39c12; background: #2a2a3a;
+    padding: 2px 8px; border-radius: 10px;
+  }
+  .produkt-empty {
+    padding: 20px; text-align: center; color: #666; font-size: 12px;
+  }
+  
+  button { transition: all 0.2s; font-family: inherit; }
+  .btn-add {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: #000; border: none; width: 100%; margin-top: 12px;
+    padding: 12px; font-size: 14px; font-weight: 700;
+    border-radius: 10px; cursor: pointer;
+    box-shadow: 0 4px 10px rgba(243,156,18,0.2);
+  }
+  .btn-add:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(243,156,18,0.4); }
+  .btn-del {
+    background: #e74c3c; color: #fff; border: none;
+    padding: 5px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-del:hover { background: #c0392b; }
+  .btn-edit {
+    background: #3498db; color: #fff; border: none;
+    padding: 5px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;
+    margin-right: 6px; font-weight: 600;
+  }
+  .btn-edit:hover { background: #2980b9; }
+  .btn-sold {
+    background: #2ecc71; color: #000; border: none;
+    padding: 5px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;
+    margin-right: 6px; font-weight: 700;
+  }
+  .btn-sold:hover { background: #27ae60; }
+  .btn-fatura {
+    background: #9b59b6; color: #fff; border: none;
+    padding: 5px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;
+    margin-right: 6px; font-weight: 700;
+  }
+  .btn-fatura:hover { background: #8e44ad; }
+  .btn-clear {
+    background: #555; color: #fff; border: none;
+    padding: 9px 16px; font-size: 12px; border-radius: 8px; cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-clear:hover { background: #666; }
+  
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+  th, td { border: 1px solid #2e2e3e; padding: 8px 10px; text-align: center; }
+  th { background: #22222e; color: #f39c12; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  tr:hover td { background: #1e1e28; }
+  
+  .fitim { color: #2ecc71; font-weight: 700; }
+  .humbje { color: #e74c3c; font-weight: 700; }
+  
+  .status-papshit {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 10px; font-weight: 700; background: #f39c12; color: #000;
+  }
+  .status-shitur {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 10px; font-weight: 700; background: #2ecc71; color: #000;
+  }
+  
+  .rezultat-box { background: #13131b; padding: 14px; border-radius: 10px; margin-top: 12px; border: 1px solid #2e2e3e; }
+  .rezultat-box p { margin: 6px 0; font-size: 13px; }
+  .total-madh {
+    font-size: 18px !important; text-align: center; padding: 10px;
+    background: linear-gradient(135deg, #0a2a1a, #0a1a2a);
+    border-radius: 8px; margin-top: 8px;
+  }
+  
+  .dita-card { background: #13131b; border: 1px solid #2e2e3e; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+  .dita-header {
+    background: #1e1e28; padding: 10px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; border-left: 4px solid #f39c12;
+  }
+  .dita-header:hover { background: #262632; }
+  .dita-header span:first-child { color: #f39c12; font-weight: 700; font-size: 14px; }
+  .dita-body { padding: 14px; }
+  
+  .hidden { display: none; }
+  .vakant { text-align: center; color: #666; padding: 30px; font-style: italic; font-size: 13px; }
+  
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .stat-box {
+    background: linear-gradient(135deg, #1a1a24, #22222e);
+    padding: 14px 10px; border-radius: 10px; text-align: center;
+    border: 1px solid #2e2e3e;
+  }
+  .stat-box .label { font-size: 10px; color: #888; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
+  .stat-box .value { font-size: 20px; font-weight: 700; color: #f39c12; }
+  .stat-box .value.fitim { color: #2ecc71; }
+  .stat-box .value.humbje { color: #e74c3c; }
+  
+  .chart-card { background: #1a1a24; padding: 18px; border-radius: 12px; border: 1px solid #2e2e3e; margin-bottom: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+  .chart-card h3 { color: #f39c12; font-size: 15px; margin-bottom: 12px; }
+  .chart-container { position: relative; height: 260px; }
+  
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #13131b; }
+  ::-webkit-scrollbar-thumb { background: #f39c12; border-radius: 4px; }
+  
+  .backup-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .backup-btns button, .backup-btns label {
+    padding: 10px 18px; border-radius: 8px; font-weight: 700;
+    cursor: pointer; font-size: 13px; border: none; margin: 0;
+  }
+  
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85); z-index: 1000;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #1a1a24; border: 2px solid #f39c12; border-radius: 14px;
+    padding: 24px; width: 100%; max-width: 480px;
+    box-shadow: 0 0 50px rgba(243,156,18,0.4);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal h3 {
+    color: #f39c12; margin-bottom: 18px; font-size: 18px;
+    border-bottom: 1px solid #2e2e3e; padding-bottom: 12px;
+  }
+  .modal .form-grid { grid-template-columns: 1fr 1fr; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-btns button {
+    flex: 1; padding: 12px; border: none; border-radius: 10px;
+    font-weight: 700; font-size: 14px; cursor: pointer;
+  }
+  .modal-save { background: linear-gradient(135deg, #2ecc71, #27ae60); color: #000; }
+  .modal-save:hover { transform: translateY(-2px); }
+  .modal-cancel { background: #555; color: #fff; }
+  .modal-cancel:hover { background: #666; }
+  
+  .filter-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .filter-tabs button {
+    padding: 7px 14px; font-size: 12px; font-weight: 700;
+    background: #1e1e2a; color: #aaa; border: 1px solid #2e2e3e;
+    border-radius: 8px; cursor: pointer;
+  }
+  .filter-tabs button.active {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: #000; border-color: #f39c12;
+  }
+  
+  .stok-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 14px;
+  }
+  .stok-card {
+    background: #13131b; border: 1px solid #2e2e3e; border-radius: 12px;
+    padding: 16px; transition: all 0.2s;
+  }
+  .stok-card:hover { border-color: #f39c12; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+  .stok-card.ulët { border-color: #f39c12; box-shadow: 0 0 15px rgba(243,156,18,0.2); }
+  .stok-card.mbaruar { border-color: #e74c3c; background: #1a0a0a; box-shadow: 0 0 15px rgba(231,76,60,0.2); }
+  .stok-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #2e2e3e;
+  }
+  .stok-header h4 { color: #f39c12; font-size: 15px; }
+  .stok-category { font-size: 11px; color: #888; }
+  .stok-info { display: flex; justify-content: space-between; margin: 8px 0; font-size: 13px; }
+  .stok-info span:first-child { color: #888; }
+  .stok-sasia { font-size: 22px; font-weight: 700; color: #2ecc71; }
+  .stok-sasia.ulët { color: #f39c12; }
+  .stok-sasia.mbaruar { color: #e74c3c; }
+  .stok-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .stok-actions button {
+    flex: 1; padding: 8px; font-size: 12px; border: none; border-radius: 6px;
+    font-weight: 700; cursor: pointer;
+  }
+  .btn-plus { background: #2ecc71; color: #000; }
+  .btn-minus { background: #f39c12; color: #000; }
+  .btn-reset-stok { background: #e74c3c; color: #fff; }
+  
+  .stok-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  
+  .kalendar-container { background: #13131b; border: 1px solid #2e2e3e; border-radius: 12px; padding: 16px; }
+  .kalendar-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px;
+  }
+  .kalendar-header button {
+    background: #22222e; color: #f39c12; border: 1px solid #2e2e3e;
+    width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
+    font-size: 18px; font-weight: 700;
+  }
+  .kalendar-header button:hover { background: #f39c12; color: #000; }
+  .kalendar-header h3 { color: #f39c12; font-size: 20px; }
+  .kalendar-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+  }
+  .kalendar-dita-emri {
+    text-align: center; font-size: 10px; color: #888;
+    text-transform: uppercase; padding: 6px 0; font-weight: 700;
+  }
+  .kalendar-dita {
+    aspect-ratio: 1; border-radius: 8px;
+    background: #1e1e2a; border: 1px solid #2e2e3e;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s; font-size: 13px;
+    padding: 4px; min-height: 55px;
+  }
+  .kalendar-dita:hover { border-color: #f39c12; transform: scale(1.05); }
+  .kalendar-dita.pust { background: transparent; border: none; cursor: default; }
+  .kalendar-dita.sot { border-color: #3498db; box-shadow: 0 0 10px rgba(52,152,219,0.5); }
+  .kalendar-dita.fitim { background: linear-gradient(135deg, #0a2a1a, #103a20); border-color: #2ecc71; }
+  .kalendar-dita.humbje { background: linear-gradient(135deg, #2a0a0a, #3a1010); border-color: #e74c3c; }
+  .kalendar-dita.aktiv { border-color: #f39c12; box-shadow: 0 0 12px #f39c12; transform: scale(1.05); }
+  .kalendar-dita .numri { font-weight: 700; color: #e0e0e0; }
+  .kalendar-dita .fitimi-dites { font-size: 9px; color: #2ecc71; margin-top: 3px; font-weight: 600; }
+  .kalendar-dita.humbje .fitimi-dites { color: #e74c3c; }
+  
+  .kalendar-detaje {
+    margin-top: 18px; padding: 16px;
+    background: #1e1e2a; border-radius: 10px;
+    border-left: 4px solid #f39c12;
+  }
+  .kalendar-detaje h4 { color: #f39c12; margin-bottom: 10px; font-size: 15px; }
+  
+  .mujor-table { margin-top: 16px; }
+  .mujor-row {
+    display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;
+    gap: 10px; padding: 10px 12px; border-radius: 8px;
+    align-items: center; font-size: 13px;
+  }
+  .mujor-row.header {
+    background: #22222e; color: #f39c12; font-weight: 700;
+    font-size: 11px; text-transform: uppercase;
+  }
+  .mujor-row:not(.header) {
+    background: #13131b; margin-top: 6px; border: 1px solid #2e2e3e;
+  }
+  .mujor-row:hover:not(.header) { border-color: #f39c12; }
+  .mujor-delta { font-size: 11px; font-weight: 700; }
+  .delta-up { color: #2ecc71; }
+  .delta-down { color: #e74c3c; }
+  .delta-neutral { color: #888; }
+  
+  .fatura-modal {
+    background: #fff; color: #000; border-radius: 14px;
+    padding: 32px; max-width: 680px; width: 100%;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 0 50px rgba(243,156,18,0.5);
+  }
+  .fatura-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 3px solid #f39c12; padding-bottom: 18px;
+    margin-bottom: 24px;
+  }
+  .fatura-logo { display: flex; align-items: center; gap: 14px; }
+  .fatura-logo-icon {
+    width: 60px; height: 60px; border-radius: 14px;
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px; box-shadow: 0 4px 12px rgba(243,156,18,0.3);
+  }
+  .fatura-logo h2 {
+    font-size: 26px; color: #f39c12; letter-spacing: 2px;
+    font-weight: 900;
+  }
+  .fatura-logo p {
+    font-size: 10px; color: #888; letter-spacing: 2px;
+  }
+  .fatura-info {
+    text-align: right; font-size: 12px; color: #666;
+  }
+  .fatura-info h3 { color: #f39c12; font-size: 24px; margin-bottom: 6px; }
+  .fatura-info p { margin: 3px 0; }
+  
+  .fatura-tabela {
+    width: 100%; border-collapse: collapse; margin: 18px 0;
+  }
+  .fatura-tabela th {
+    background: #f39c12; color: #fff; padding: 12px;
+    font-size: 12px; text-transform: uppercase;
+    border: none;
+  }
+  .fatura-tabela td {
+    padding: 12px; border-bottom: 1px solid #eee;
+    font-size: 13px; text-align: center; color: #333;
+  }
+  .fatura-tabela tr:hover td { background: #f9f9f9; }
+  .fatura-tabela .td-majtas { text-align: left; font-weight: 700; }
+  
+  .fatura-total {
+    background: #f5f5f5; padding: 18px; border-radius: 10px;
+    margin-top: 18px;
+  }
+  .fatura-total-rresht {
+    display: flex; justify-content: space-between;
+    padding: 6px 0; font-size: 14px;
+  }
+  .fatura-total-rresht.final {
+    border-top: 2px solid #f39c12; padding-top: 12px;
+    margin-top: 12px; font-size: 20px; font-weight: 700;
+    color: #f39c12;
+  }
+  
+  .fatura-footer {
+    text-align: center; margin-top: 30px; padding-top: 18px;
+    border-top: 1px solid #ddd; font-size: 11px; color: #888;
+  }
+  .fatura-footer p { margin: 4px 0; }
+  .fatura-footer .faleminderit {
+    color: #f39c12; font-weight: 700; font-size: 15px;
+    margin-top: 12px;
+  }
+  
+  .fatura-btns {
+    display: flex; gap: 10px; margin-top: 24px;
+  }
+  .fatura-btns button {
+    flex: 1; padding: 14px; border: none; border-radius: 10px;
+    font-weight: 700; font-size: 15px; cursor: pointer;
+  }
+  .fatura-print {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: #fff;
+  }
+  .fatura-print:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(243,156,18,0.5); }
+  .fatura-close {
+    background: #ddd; color: #333;
+  }
+  .fatura-close:hover { background: #ccc; }
+  
+  .backup-info-box {
+    background: #0a2a1a; border: 1px solid #2ecc71;
+    border-radius: 10px; padding: 14px; margin-top: 12px;
+    font-size: 12px; color: #2ecc71;
+  }
+  
+  @media print {
+    body * { visibility: hidden; }
+    #modalFatura, #modalFatura * { visibility: visible; }
+    #modalFatura {
+      position: absolute; left: 0; top: 0;
+      background: #fff !important; padding: 0 !important;
+      display: block !important;
+    }
+    #modalFatura .fatura-modal {
+      box-shadow: none !important; max-height: none !important;
+      max-width: 100% !important; padding: 20px !important;
+    }
+    #modalFatura .fatura-btns { display: none !important; }
+  }
+
+  .manage-products-btn {
+    background: #3498db; color: #fff; border: none;
+    padding: 8px 14px; border-radius: 8px; font-weight: 600;
+    cursor: pointer; font-size: 12px; margin-bottom: 12px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .manage-products-btn:hover { background: #2980b9; }
+
+  .product-manager-list {
+    max-height: 250px; overflow-y: auto;
+    border: 1px solid #2e2e3e; border-radius: 8px;
+    padding: 8px; background: #13131b;
+    margin-top: 10px;
+  }
+  .product-manager-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 10px; border-bottom: 1px solid #1e1e2a;
+    font-size: 13px;
+  }
+  .product-manager-item:last-child { border-bottom: none; }
+  .product-manager-item span { color: #e0e0e0; }
+  .product-manager-item .btn-del {
+    padding: 4px 8px; font-size: 10px;
+  }
+  .product-manager-empty {
+    padding: 20px; text-align: center; color: #666; font-size: 12px;
+  }
+  .toggle-switch-container {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; padding: 12px;
+    background: #13131b; border-radius: 8px;
+    border: 1px solid #2e2e3e;
+  }
+  .toggle-switch-container label {
+    margin-bottom: 0; font-size: 12px; color: #e0e0e0;
+    text-transform: none; font-weight: 600;
+  }
+  .toggle-switch {
+    position: relative; width: 48px; height: 26px;
+    background: #2e2e3e; border-radius: 13px;
+    cursor: pointer; transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-switch.active { background: #2ecc71; }
+  .toggle-switch::after {
+    content: ''; position: absolute;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px;
+    transition: transform 0.2s;
+  }
+  .toggle-switch.active::after { transform: translateX(22px); }
+</style>
+</head>
+<body>
+
+<div class="mobile-overlay" id="overlay" onclick="mbyllMenu()"></div>
+
+<div class="mobile-menu" id="mobileMenu">
+  <button id="m-tab-shto" class="active" onclick="showTab('shto')">➕ Shto Produkt</button>
+  <button id="m-tab-historik" onclick="showTab('historik')">📋 Historiku</button>
+  <button id="m-tab-stoku" onclick="showTab('stoku')">📦 Stoku</button>
+  <button id="m-tab-kalendar" onclick="showTab('kalendar')">🗓️ Kalendar</button>
+  <button id="m-tab-grafike" onclick="showTab('grafike')">📊 Grafikë</button>
+  <button id="m-tab-mujor" onclick="showTab('mujor')">📊 Krahasim Mujor</button>
+  <button id="m-tab-backup" onclick="showTab('backup')">💾 Backup</button>
+  <button class="close-menu" onclick="mbyllMenu()">✖ Mbyll</button>
+</div>
+
+<div class="wrap">
+  <div class="logo-bar">
+    <div>
+      <div class="logo">
+        <div class="logo-icon">🚗</div>
+        <span class="logo-text">CARZONE</span>
+      </div>
+      <div class="logo-sub">LLOGARITËSI I PRODUKTEVE</div>
+    </div>
+    <button class="hamburger" onclick="hapMenu()">☰</button>
+  </div>
+
+  <div class="tabs">
+    <button id="tab-shto" class="active" onclick="showTab('shto')">➕ Shto</button>
+    <button id="tab-historik" onclick="showTab('historik')">📋 Historiku</button>
+    <button id="tab-stoku" onclick="showTab('stoku')">📦 Stoku</button>
+    <button id="tab-kalendar" onclick="showTab('kalendar')">🗓️ Kalendar</button>
+    <button id="tab-grafike" onclick="showTab('grafike')">📊 Grafikë</button>
+    <button id="tab-mujor" onclick="showTab('mujor')">📊 Mujor</button>
+    <button id="tab-backup" onclick="showTab('backup')">💾 Backup</button>
+  </div>
+
+  <div id="seksioni-shto">
+    <div class="card">
+      <h3>📅 Data</h3>
+      <div class="form-grid">
+        <div><label>Data</label><input type="date" id="data"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0; border:none; padding:0;">📦 Shto Produkt</h3>
+        <button class="manage-products-btn" onclick="hapMenaxhoProduktet()">✏️ Menaxho Produktet</button>
+      </div>
+      <p style="color:#888; font-size:12px; margin-bottom:12px;">
+        💡 Kliko fushën e produktit për të zgjedhur nga lista ose shkruaj lirshëm nëse dropdown-i është i çaktivizuar.
+      </p>
+      <div class="form-grid">
+        <div class="produkt-select-container">
+          <label>Produkti</label>
+          <input type="text" class="produkt-input" id="emri" placeholder="Kliko për të zgjedhur..." readonly>
+          <span class="produkt-arrow" id="produktArrow">▼</span>
+          <div class="produkt-dropdown" id="produktDropdown">
+            <input type="text" id="produktSearch" placeholder="🔍 Kërko produkt...">
+            <div id="produktOptions"></div>
+          </div>
+        </div>
+        <div><label>Blerje (lekë)</label><input type="number" id="blerja" placeholder="0" step="0.01"></div>
+        <div><label>Shitje (lekë)</label><input type="number" id="shitja" placeholder="0" step="0.01"></div>
+        <div><label>Sasia</label><input type="number" id="sasia" value="1" min="1"></div>
+        <div><label>Shpenzime</label><input type="number" id="shpenzime" value="0" step="0.01"></div>
+      </div>
+      <button class="btn-add" onclick="shtoProdukt()">➕ Shto Produktin</button>
+    </div>
+
+    <div class="card">
+      <h3>📋 Produktet e Ditës: <span id="data-shfaq" style="color:#f39c12;"></span></h3>
+      <div class="filter-tabs">
+        <button id="f-tëgjitha" class="active" onclick="filtroProduktet('tëgjitha')">Të Gjitha</button>
+        <button id="f-papshit" onclick="filtroProduktet('papshit')">⏳ Papshit</button>
+        <button id="f-shitur" onclick="filtroProduktet('shitur')">✅ Shitur</button>
+      </div>
+      <div id="produktet-dita"></div>
+    </div>
+  </div>
+
+  <div id="seksioni-historik" class="hidden">
+    <div class="stats-grid" id="stats-top"></div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0; border:none; padding:0;">📋 Historiku</h3>
+        <button class="btn-clear" onclick="fshiGjithcka()">🗑️ Fshi Gjithçka</button>
+      </div>
+      <div id="historiku"></div>
+    </div>
+  </div>
+
+  <div id="seksioni-stoku" class="hidden">
+    <div class="card">
+      <h3>📦 Stoku (Inventari)</h3>
+      <p style="color:#888; font-size:12px; margin-bottom:12px;">
+        💡 Këtu shfaqen të gjitha produktet e papshitura. Shto ose zbrit sasinë sipas nevojës.
+      </p>
+      <div class="stok-stats" id="stok-stats"></div>
+      <div class="filter-tabs">
+        <button id="sf-tëgjitha" class="active" onclick="filtroStok('tëgjitha')">Të Gjitha</button>
+        <button id="sf-disponueshëm" onclick="filtroStok('disponueshëm')">✅ Disponueshëm</button>
+        <button id="sf-ulët" onclick="filtroStok('ulët')">⚠️ Stok i Ulët</button>
+        <button id="sf-mbaruar" onclick="filtroStok('mbaruar')">❌ Mbaruar</button>
+      </div>
+      <div class="stok-grid" id="stok-lista"></div>
+    </div>
+  </div>
+
+  <div id="seksioni-kalendar" class="hidden">
+    <div class="card">
+      <h3>🗓️ Kalendari i Shitjeve</h3>
+      <div class="kalendar-container">
+        <div class="kalendar-header">
+          <button onclick="nderroMuaj(-1)">◀</button>
+          <h3 id="kalendar-titull"></h3>
+          <button onclick="nderroMuaj(1)">▶</button>
+        </div>
+        <div class="kalendar-grid" id="kalendar-grid"></div>
+        <div class="kalendar-detaje" id="kalendar-detaje">
+          <p style="color:#666; font-size:12px; text-align:center;">Kliko një ditë për të parë detajet</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="seksioni-grafike" class="hidden">
+    <div class="chart-card">
+      <h3>📊 Fitimi Ditor (14 ditët e fundit)</h3>
+      <div class="chart-container"><canvas id="chart-ditor"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>📈 Fitimi Mujor</h3>
+      <div class="chart-container"><canvas id="chart-mujor"></canvas></div>
+    </div>
+  </div>
+
+  <div id="seksioni-mujor" class="hidden">
+    <div class="card">
+      <h3>📊 Krahasim Mujor</h3>
+      <div class="chart-card" style="padding:0; border:none; margin-bottom:15px;">
+        <div class="chart-container"><canvas id="chart-krahasim"></canvas></div>
+      </div>
+      <div class="mujor-table" id="mujor-tabela"></div>
+    </div>
+  </div>
+
+  <div id="seksioni-backup" class="hidden">
+    <div class="card">
+      <h3>💾 Backup Automatik</h3>
+      <p style="color:#999; margin-bottom:12px; font-size:12px;">
+        Aplikacioni bën <b>backup automatik çdo ditë</b> dhe ruan 7 kopjet e fundit.
+      </p>
+      <div id="backup-auto-info"></div>
+      <h3 style="margin-top:20px;">📁 Backupe të Ruajtura</h3>
+      <div id="lista-backupesh"></div>
+    </div>
+    <div class="card">
+      <h3>📤 Backup Manual & Import</h3>
+      <p style="color:#999; margin-bottom:12px; font-size:12px;">Ruaj të dhënat ose importo nga file.</p>
+      <div class="backup-btns">
+        <button class="btn-add" style="width:auto;" onclick="eksportoSkedar()">📤 Eksporto JSON</button>
+        <button class="btn-add" style="width:auto;background:linear-gradient(135deg,#3498db,#2980b9);" onclick="eksportoCSV()">📊 Eksporto CSV</button>
+        <label class="btn-add" style="width:auto;background:linear-gradient(135deg,#2ecc71,#27ae60);cursor:pointer;display:inline-block;text-align:center;">
+          📥 Importo JSON
+          <input type="file" accept=".json" onchange="importoSkedar(event)" style="display:none;">
+        </label>
+        <button class="btn-add" style="width:auto;background:linear-gradient(135deg,#9b59b6,#8e44ad);" onclick="bejBackupManual()">🔄 Krijo Backup Tani</button>
+      </div>
+      <div id="backup-info" style="margin-top:16px; font-size:12px; color:#aaa;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalEdit">
+  <div class="modal">
+    <h3>✏️ Edito Produktin</h3>
+    <div class="form-grid">
+      <div style="grid-column: 1/-1;">
+        <label>Emri i produktit</label>
+        <input type="text" id="edit-emri">
+      </div>
+      <div>
+        <label>Sasia</label>
+        <input type="number" id="edit-sasia" min="1">
+      </div>
+      <div>
+        <label>Blerje (lekë)</label>
+        <input type="number" id="edit-blerja" step="0.01">
+      </div>
+      <div>
+        <label>Shitje (lekë)</label>
+        <input type="number" id="edit-shitja" step="0.01">
+      </div>
+      <div style="grid-column: 1/-1;">
+        <label>Shpenzime</label>
+        <input type="number" id="edit-shpenzime" step="0.01">
+      </div>
+    </div>
+    <p style="color:#888; font-size:11px; margin-top:12px;">
+      💡 Kur ta shesësh produktin, plotëso "Shitje" me çmimin real.
+    </p>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="mbyllModalEdit()">Anulo</button>
+      <button class="modal-save" onclick="ruajEdit()">💾 Ruaj</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalFatura">
+  <div class="fatura-modal" id="faturaContent"></div>
+</div>
+
+<div class="modal-overlay" id="modalMenaxhoProduktet">
+  <div class="modal">
+    <h3>✏️ Menaxho Produktet</h3>
+    <div class="toggle-switch-container">
+      <label>Përdor Dropdown-in e Produkteve</label>
+      <div class="toggle-switch" id="toggleDropdown" onclick="toggleProduktDropdown()"></div>
+    </div>
+    <p style="color:#888; font-size:11px; margin-bottom:12px;">
+      Kur është aktiv, fusha e produktit shfaq një listë me produkte. Kur është joaktiv, mund të shkruash lirshëm.
+    </p>
+    <div style="display:flex; gap:8px; margin-bottom:12px;">
+      <input type="text" id="produktIriInput" placeholder="Shto produkt të re..." style="flex:1;">
+      <button class="btn-add" style="width:auto; margin-top:0; padding:10px 16px;" onclick="shtoProduktTeRi()">➕ Shto</button>
+    </div>
+    <div class="product-manager-list" id="productManagerList"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="mbyllMenaxhoProduktet()">Mbyll</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== LISTA E PRODUKTEVE (FILLIMISHT BOSH) =====
+let PRODUKTET_E_PARACAKTUARA = JSON.parse(localStorage.getItem('carzone_produktet')) || [];
+
+let useDropdown = JSON.parse(localStorage.getItem('carzone_use_dropdown'));
+if (useDropdown === null) useDropdown = true;
+
+// ===== DATABASE =====
+let databaza = JSON.parse(localStorage.getItem('carzone_db_v4')) || {};
+let currentEdit = { data: null, index: null };
+let currentFilter = 'tëgjitha';
+let currentStokFilter = 'tëgjitha';
+let muajiAktual = new Date();
+let ditaAktuale = null;
+
+document.getElementById('data').value = new Date().toISOString().split('T')[0];
+document.getElementById('data').addEventListener('change', renderDita);
+
+// ===== MENU MOBILE =====
+function hapMenu() {
+  document.getElementById('mobileMenu').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function mbyllMenu() {
+  document.getElementById('mobileMenu').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ===== TABS =====
+function showTab(tab) {
+  ['shto','historik','stoku','kalendar','grafike','mujor','backup'].forEach(t => {
+    document.getElementById('seksioni-' + t).classList.toggle('hidden', t !== tab);
+    const deskBtn = document.getElementById('tab-' + t);
+    const mobBtn = document.getElementById('m-tab-' + t);
+    if (deskBtn) deskBtn.classList.toggle('active', t === tab);
+    if (mobBtn) mobBtn.classList.toggle('active', t === tab);
+  });
+  mbyllMenu();
+  if (tab === 'historik') renderHistorik();
+  if (tab === 'stoku') renderStoku();
+  if (tab === 'kalendar') renderKalendar();
+  if (tab === 'grafike') renderGrafiket();
+  if (tab === 'mujor') renderMujor();
+  if (tab === 'backup') renderBackupInfo();
+  if (tab === 'shto') renderDita();
+}
+
+// ===== FILTER =====
+function filtroProduktet(filter) {
+  currentFilter = filter;
+  ['tëgjitha','papshit','shitur'].forEach(f => {
+    document.getElementById('f-' + f).classList.toggle('active', f === filter);
+  });
+  renderDita();
+}
+
+function filtroStok(filter) {
+  currentStokFilter = filter;
+  ['tëgjitha','disponueshëm','ulët','mbaruar'].forEach(f => {
+    document.getElementById('sf-' + f).classList.toggle('active', f === filter);
+  });
+  renderStoku();
+}
+
+// ===== MENAXHO PRODUKTET =====
+function hapMenaxhoProduktet() {
+  document.getElementById('modalMenaxhoProduktet').classList.add('open');
+  renderMenaxhoProduktet();
+}
+function mbyllMenaxhoProduktet() {
+  document.getElementById('modalMenaxhoProduktet').classList.remove('open');
+}
+function renderMenaxhoProduktet() {
+  const toggle = document.getElementById('toggleDropdown');
+  toggle.classList.toggle('active', useDropdown);
+  const list = document.getElementById('productManagerList');
+  if (PRODUKTET_E_PARACAKTUARA.length === 0) {
+    list.innerHTML = '<div class="product-manager-empty">Nuk ka produkte të shtuara. Shkruaj më sipër për të shtuar një të re.</div>';
+  } else {
+    let html = '';
+    PRODUKTET_E_PARACAKTUARA.slice().sort().forEach((p, i) => {
+      html += `<div class="product-manager-item">
+        <span>${p}</span>
+        <button class="btn-del" onclick="fshiProduktTeRi(${i})">✖</button>
+      </div>`;
+    });
+    list.innerHTML = html;
+  }
+}
+function toggleProduktDropdown() {
+  useDropdown = !useDropdown;
+  localStorage.setItem('carzone_use_dropdown', JSON.stringify(useDropdown));
+  renderMenaxhoProduktet();
+  aplikoProduktInput();
+}
+function aplikoProduktInput() {
+  const input = document.getElementById('emri');
+  const arrow = document.getElementById('produktArrow');
+  if (useDropdown) {
+    input.readOnly = true;
+    input.placeholder = 'Kliko për të zgjedhur...';
+    input.style.cursor = 'pointer';
+    arrow.style.display = 'block';
+  } else {
+    input.readOnly = false;
+    input.placeholder = 'Shkruaj emrin e produktit...';
+    input.style.cursor = 'text';
+    arrow.style.display = 'none';
+    mbyllDropdown();
+  }
+}
+function shtoProduktTeRi() {
+  const input = document.getElementById('produktIriInput');
+  const emri = input.value.trim();
+  if (!emri) return;
+  if (PRODUKTET_E_PARACAKTUARA.includes(emri)) { alert('Ky produkt ekziston!'); return; }
+  PRODUKTET_E_PARACAKTUARA.push(emri);
+  localStorage.setItem('carzone_produktet', JSON.stringify(PRODUKTET_E_PARACAKTUARA));
+  input.value = '';
+  renderMenaxhoProduktet();
+  renderProduktOptions();
+}
+function fshiProduktTeRi(index) {
+  const emri = PRODUKTET_E_PARACAKTUARA[index];
+  if (!confirm(`Fshi produktin "${emri}"?`)) return;
+  PRODUKTET_E_PARACAKTUARA.splice(index, 1);
+  localStorage.setItem('carzone_produktet', JSON.stringify(PRODUKTET_E_PARACAKTUARA));
+  renderMenaxhoProduktet();
+  renderProduktOptions();
+}
+
+// ===== DROPDOWN PRODUKTESH =====
+const produktInput = document.getElementById('emri');
+const produktDropdown = document.getElementById('produktDropdown');
+const produktSearch = document.getElementById('produktSearch');
+const produktOptions = document.getElementById('produktOptions');
+
+function getHistoriProdukti(emri) {
+  let count = 0;
+  Object.keys(databaza).forEach(data => {
+    databaza[data].forEach(p => {
+      if (p.emri === emri) count++;
+    });
+  });
+  return count;
+}
+
+function getTeGjithaProduktet() {
+  const set = new Set(PRODUKTET_E_PARACAKTUARA);
+  Object.keys(databaza).forEach(data => {
+    databaza[data].forEach(p => set.add(p.emri));
+  });
+  return Array.from(set).sort();
+}
+
+function renderProduktOptions(filtri = '') {
+  if (!useDropdown) return;
+  const teGjitha = getTeGjithaProduktet();
+  const filtriLower = filtri.toLowerCase().trim();
+  const teFiltruara = filtriLower 
+    ? teGjitha.filter(p => p.toLowerCase().includes(filtriLower))
+    : teGjitha;
+
+  let html = '';
+  if (teFiltruara.length === 0) {
+    html = `<div class="produkt-empty">
+      Nuk u gjet. Shko te <b>Menaxho Produktet</b> për të shtuar një produkt të re.
+    </div>`;
+  } else {
+    teFiltruara.forEach(p => {
+      const histori = getHistoriProdukti(p);
+      const badge = histori > 0 
+        ? `<span class="histori">${histori}x</span>` 
+        : '';
+      html += `<div class="produkt-option" onclick="zgjidhProdukt('${p.replace(/'/g, "\\'")}')">
+        <span class="emri">${p}</span>
+        ${badge}
+      </div>`;
+    });
+  }
+  produktOptions.innerHTML = html;
+}
+
+function zgjidhProdukt(emri) {
+  produktInput.value = emri;
+  mbyllDropdown();
+  document.getElementById('blerja').focus();
+}
+
+function mbyllDropdown() {
+  produktDropdown.classList.remove('open');
+  produktSearch.value = '';
+  renderProduktOptions();
+}
+
+function hapDropdown() {
+  if (!useDropdown) return;
+  produktDropdown.classList.add('open');
+  produktSearch.value = '';
+  renderProduktOptions();
+  setTimeout(() => produktSearch.focus(), 50);
+}
+
+produktInput.addEventListener('click', (e) => {
+  if (!useDropdown) return;
+  e.stopPropagation();
+  if (produktDropdown.classList.contains('open')) {
+    mbyllDropdown();
+  } else {
+    hapDropdown();
+  }
+});
+
+produktSearch.addEventListener('input', (e) => {
+  renderProduktOptions(e.target.value);
+});
+
+produktSearch.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const teksti = produktSearch.value.trim();
+    if (teksti) {
+      zgjidhProdukt(teksti);
+    }
+  }
+  if (e.key === 'Escape') {
+    mbyllDropdown();
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.produkt-select-container')) {
+    mbyllDropdown();
+  }
+});
+
+// ===== SHTIM =====
+function shtoProdukt() {
+  const data = document.getElementById('data').value;
+  const emri = document.getElementById('emri').value.trim() || 'Pa emër';
+  const blerja = parseFloat(document.getElementById('blerja').value) || 0;
+  const shitja = parseFloat(document.getElementById('shitja').value) || 0;
+  const sasia = parseInt(document.getElementById('sasia').value) || 1;
+  const shpenzime = parseFloat(document.getElementById('shpenzime').value) || 0;
+
+  if (!data) { alert('Zgjidh datën!'); return; }
+  if (blerja === 0 && shitja === 0) { alert('Plotëso çmimin e blerjes!'); return; }
+
+  const kosto = (blerja * sasia) + shpenzime;
+  const teArdhura = shitja * sasia;
+  const fitim = teArdhura - kosto;
+  const statusi = shitja > 0 ? 'shitur' : 'papshit';
+
+  if (!databaza[data]) databaza[data] = [];
+  // Hequr 'kategori' nga objekti
+  databaza[data].push({ emri, blerja, shitja, sasia, shpenzime, fitim, statusi });
+
+  ruaj(); renderDita();
+  ['emri','blerja','shitja'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('sasia').value = 1;
+  document.getElementById('shpenzime').value = 0;
+  produktInput.focus();
+}
+
+function ruaj() { localStorage.setItem('carzone_db_v4', JSON.stringify(databaza)); }
+
+// ===== DITA =====
+function renderDita() {
+  const data = document.getElementById('data').value;
+  document.getElementById('data-shfaq').textContent = data;
+  const div = document.getElementById('produktet-dita');
+  let produktet = databaza[data] || [];
+
+  if (currentFilter === 'papshit') produktet = produktet.filter(p => p.shitja === 0);
+  if (currentFilter === 'shitur') produktet = produktet.filter(p => p.shitja > 0);
+
+  if (produktet.length === 0) {
+    div.innerHTML = '<p class="vakant">Nuk ka produkte për këtë ditë.</p>';
+    return;
+  }
+
+  let html = '', totalFitim = 0, totalKosto = 0, totalShitje = 0;
+  let rreshta = '';
+
+  // Nuk ka më grupim sipas kategorive
+  produktet.forEach(p => {
+    const idxOrig = databaza[data].indexOf(p);
+    const eshteShitur = p.shitja > 0;
+    if (eshteShitur) {
+      totalFitim += p.fitim;
+      totalShitje += p.shitja * p.sasia;
+    }
+    totalKosto += (p.blerja * p.sasia) + p.shpenzime;
+
+    const statusBadge = eshteShitur
+      ? '<span class="status-shitur">✅ Shitur</span>'
+      : '<span class="status-papshit">⏳ Papshit</span>';
+    const fitimShfaq = eshteShitur
+      ? `<span class="${p.fitim>=0?'fitim':'humbje'}">${p.fitim.toFixed(0)}</span>`
+      : '<span style="color:#666;">—</span>';
+
+    rreshta += `<tr>
+      <td>${p.emri}</td>
+      <td>${p.blerja}</td>
+      <td>${eshteShitur ? p.shitja : '—'}</td>
+      <td>${p.sasia}</td>
+      <td>${fitimShfaq}</td>
+      <td>${statusBadge}</td>
+      <td>
+        ${!eshteShitur ? `<button class="btn-sold" onclick="shiturShpejt('${data}', ${idxOrig})">✅</button>` : `<button class="btn-fatura" onclick="shfaqFatura('${data}', ${idxOrig})">🧾</button>`}
+        <button class="btn-edit" onclick="hapModalEdit('${data}', ${idxOrig})">✏️</button>
+        <button class="btn-del" onclick="fshiProdukt('${data}', ${idxOrig})">✖</button>
+      </td>
+    </tr>`;
+  });
+
+  html += `<div class="kategori-box">
+    <table><tr><th>Produkti</th><th>Blerje</th><th>Shitje</th><th>Sasi</th><th>Fitim</th><th>Status</th><th></th></tr>${rreshta}</table>
+  </div>`;
+
+  const klasa = totalFitim >= 0 ? 'fitim' : 'humbje';
+  html += `<div class="rezultat-box">
+    <p>💸 Kosto total: <b>${totalKosto.toFixed(0)} lekë</b></p>
+    <p>💵 Të ardhura (vetëm të shitur): <b>${totalShitje.toFixed(0)} lekë</b></p>
+    <p class="total-madh ${klasa}">📊 FITIMI I DITËS: ${totalFitim.toFixed(0)} lekë</p>
+  </div>`;
+  div.innerHTML = html;
+}
+
+// ===== SHITUR SHPEJT =====
+function shiturShpejt(data, index) {
+  const p = databaza[data][index];
+  const cmimi = prompt(`Për sa e shite "${p.emri}"? (lekë)`, p.shitja || '');
+  if (cmimi === null) return;
+  const shitja = parseFloat(cmimi) || 0;
+  if (shitja <= 0) { alert('Vendos një çmim të saktë!'); return; }
+  p.shitja = shitja;
+  p.fitim = (shitja * p.sasia) - ((p.blerja * p.sasia) + p.shpenzime);
+  p.statusi = 'shitur';
+  ruaj(); renderDita();
+}
+
+// ===== MODAL EDIT =====
+function hapModalEdit(data, index) {
+  const p = databaza[data][index];
+  currentEdit = { data, index };
+  document.getElementById('edit-emri').value = p.emri;
+  document.getElementById('edit-sasia').value = p.sasia;
+  document.getElementById('edit-blerja').value = p.blerja;
+  document.getElementById('edit-shitja').value = p.shitja;
+  document.getElementById('edit-shpenzime').value = p.shpenzime;
+  document.getElementById('modalEdit').classList.add('open');
+}
+
+function mbyllModalEdit() {
+  document.getElementById('modalEdit').classList.remove('open');
+  currentEdit = { data: null, index: null };
+}
+
+function ruajEdit() {
+  const { data, index } = currentEdit;
+  if (!data || index === null) return;
+  const p = databaza[data][index];
+
+  p.emri = document.getElementById('edit-emri').value.trim() || 'Pa emër';
+  p.sasia = parseInt(document.getElementById('edit-sasia').value) || 1;
+  p.blerja = parseFloat(document.getElementById('edit-blerja').value) || 0;
+  p.shitja = parseFloat(document.getElementById('edit-shitja').value) || 0;
+  p.shpenzime = parseFloat(document.getElementById('edit-shpenzime').value) || 0;
+
+  p.fitim = (p.shitja * p.sasia) - ((p.blerja * p.sasia) + p.shpenzime);
+  p.statusi = p.shitja > 0 ? 'shitur' : 'papshit';
+
+  ruaj(); mbyllModalEdit(); renderDita();
+  if (!document.getElementById('seksioni-historik').classList.contains('hidden')) renderHistorik();
+}
+
+function fshiProdukt(data, index) {
+  if (!confirm('Fshi këtë produkt?')) return;
+  databaza[data].splice(index, 1);
+  if (databaza[data].length === 0) delete databaza[data];
+  ruaj(); renderDita();
+}
+
+// ===== HISTORIK =====
+function renderHistorik() {
+  const div = document.getElementById('historiku');
+  const stats = document.getElementById('stats-top');
+  const datat = Object.keys(databaza).sort().reverse();
+
+  if (datat.length === 0) {
+    div.innerHTML = '<p class="vakant">Nuk ka të dhëna.</p>';
+    stats.innerHTML = '';
+    return;
+  }
+
+  let fitimTotal = 0, kostoTot = 0, shitjeTot = 0, numriProdukteve = 0, papshit = 0;
+  let html = '';
+
+  datat.forEach(data => {
+    const produktet = databaza[data];
+    let fitimDita = 0, kostoDita = 0, shitjeDita = 0, rreshta = '';
+    
+    produktet.forEach((p, i) => {
+      const eshteShitur = p.shitja > 0;
+      if (eshteShitur) {
+        fitimDita += p.fitim;
+        shitjeDita += p.shitja * p.sasia;
+      } else {
+        papshit++;
+      }
+      kostoDita += (p.blerja * p.sasia) + p.shpenzime;
+      numriProdukteve++;
+      const statusBadge = eshteShitur
+        ? '<span class="status-shitur">✅</span>'
+        : '<span class="status-papshit">⏳</span>';
+      rreshta += `<tr>
+        <td>${p.emri}</td>
+        <td>${p.blerja}</td>
+        <td>${eshteShitur ? p.shitja : '—'}</td>
+        <td>${p.sasia}</td>
+        <td class="${eshteShitur ? (p.fitim>=0?'fitim':'humbje') : ''}" style="${!eshteShitur?'color:#666;':''}">${eshteShitur ? p.fitim.toFixed(0) : '—'}</td>
+        <td>${statusBadge}</td>
+        <td>${eshteShitur ? `<button class="btn-fatura" onclick="shfaqFatura('${data}', ${i})">🧾</button>` : ''}</td>
+        <td><button class="btn-edit" onclick="hapModalEditHist('${data}', ${i})">✏️</button>
+            <button class="btn-del" onclick="fshiProduktHistorik('${data}', ${i})">✖</button></td>
+      </tr>`;
+    });
+    
+    fitimTotal += fitimDita; kostoTot += kostoDita; shitjeTot += shitjeDita;
+    const klasa = fitimDita >= 0 ? 'fitim' : 'humbje';
+    html += `<div class="dita-card">
+      <div class="dita-header" onclick="toggleDita(this)">
+        <span>📅 ${data}</span>
+        <span class="${klasa}">Fitim: ${fitimDita.toFixed(0)} ▼</span>
+      </div>
+      <div class="dita-body hidden">
+        <table><tr><th>Produkti</th><th>Blerje</th><th>Shitje</th><th>Sasi</th><th>Fitim</th><th>Status</th><th>Fatura</th><th></th></tr>${rreshta}</table>
+        <p style="font-size:11px;color:#888;margin-top:8px;">💸 Kosto: ${kostoDita.toFixed(0)} | 💵 Të ardhura: ${shitjeDita.toFixed(0)}</p>
+      </div>
+    </div>`;
+  });
+  div.innerHTML = html;
+
+  const klasaTotal = fitimTotal >= 0 ? 'fitim' : 'humbje';
+  stats.innerHTML = `
+    <div class="stat-box"><div class="label">Ditë</div><div class="value">${datat.length}</div></div>
+    <div class="stat-box"><div class="label">Produkte</div><div class="value">${numriProdukteve}</div></div>
+    <div class="stat-box"><div class="label">Papshit</div><div class="value">${papshit}</div></div>
+    <div class="stat-box"><div class="label">Kosto</div><div class="value">${kostoTot.toFixed(0)}</div></div>
+    <div class="stat-box"><div class="label">Të ardhura</div><div class="value">${shitjeTot.toFixed(0)}</div></div>
+    <div class="stat-box"><div class="label">Fitim Total</div><div class="value ${klasaTotal}">${fitimTotal.toFixed(0)}</div></div>
+  `;
+}
+
+function hapModalEditHist(data, index) { hapModalEdit(data, index); }
+
+function toggleDita(el) { el.nextElementSibling.classList.toggle('hidden'); }
+
+function fshiProduktHistorik(data, index) {
+  if (!confirm('Fshi këtë produkt?')) return;
+  databaza[data].splice(index, 1);
+  if (databaza[data].length === 0) delete databaza[data];
+  ruaj(); renderHistorik();
+}
+
+function fshiGjithcka() {
+  if (!confirm('⚠️ Fshi TË GJITHA të dhënat?')) return;
+  databaza = {}; ruaj();
+  renderHistorik(); renderDita();
+}
+
+// ===== STOKU =====
+function renderStoku() {
+  const stats = document.getElementById('stok-stats');
+  const div = document.getElementById('stok-lista');
+
+  let produktet = [];
+  Object.keys(databaza).sort().forEach(data => {
+    databaza[data].forEach((p, i) => {
+      if (p.shitja === 0) {
+        produktet.push({ ...p, dataOrigjinale: data, idxOrigjinal: i });
+      }
+    });
+  });
+
+  if (produktet.length === 0) {
+    stats.innerHTML = '';
+    div.innerHTML = '<p class="vakant">Nuk ka produkte në stok.</p>';
+    return;
+  }
+
+  let totali = produktet.length;
+  let ulët = produktet.filter(p => p.sasia > 0 && p.sasia <= 3).length;
+  let mbaruar = produktet.filter(p => p.sasia === 0).length;
+  let vleraTotale = produktet.reduce((s, p) => s + (p.blerja * p.sasia), 0);
+
+  stats.innerHTML = `
+    <div class="stat-box"><div class="label">Totali</div><div class="value">${totali}</div></div>
+    <div class="stat-box"><div class="label">Stok i Ulët</div><div class="value" style="color:#f39c12;">${ulët}</div></div>
+    <div class="stat-box"><div class="label">Mbaruar</div><div class="value humbje">${mbaruar}</div></div>
+    <div class="stat-box"><div class="label">Vlera Stokut</div><div class="value">${vleraTotale.toFixed(0)} lekë</div></div>
+  `;
+
+  if (currentStokFilter === 'disponueshëm') produktet = produktet.filter(p => p.sasia > 0);
+  if (currentStokFilter === 'ulët') produktet = produktet.filter(p => p.sasia > 0 && p.sasia <= 3);
+  if (currentStokFilter === 'mbaruar') produktet = produktet.filter(p => p.sasia === 0);
+
+  if (produktet.length === 0) {
+    div.innerHTML = '<p class="vakant">Nuk ka produkte me këtë filter.</p>';
+    return;
+  }
+
+  let html = '';
+  produktet.forEach(p => {
+    let klasa = '';
+    let statusi = 'Disponueshëm';
+    let klasaSasia = '';
+    if (p.sasia === 0) { klasa = 'mbaruar'; statusi = 'Mbaruar'; klasaSasia = 'mbaruar'; }
+    else if (p.sasia <= 3) { klasa = 'ulët'; statusi = 'Stok i Ulët'; klasaSasia = 'ulët'; }
+
+    html += `<div class="stok-card ${klasa}">
+      <div class="stok-header">
+        <div>
+          <h4>${p.emri}</h4>
+          <div class="stok-category">📅 ${p.dataOrigjinale}</div>
+        </div>
+      </div>
+      <div class="stok-info">
+        <span>Sasia:</span>
+        <span class="stok-sasia ${klasaSasia}">${p.sasia}</span>
+      </div>
+      <div class="stok-info">
+        <span>Blerje / copë:</span>
+        <span>${p.blerja.toFixed(0)} lekë</span>
+      </div>
+      <div class="stok-info">
+        <span>Vlera totale:</span>
+        <span style="color:#f39c12;font-weight:bold;">${(p.blerja * p.sasia).toFixed(0)} lekë</span>
+      </div>
+      <div class="stok-info">
+        <span>Statusi:</span>
+        <span class="${p.sasia === 0 ? 'humbje' : p.sasia <= 3 ? '' : 'fitim'}" style="${p.sasia > 0 && p.sasia <= 3 ? 'color:#f39c12;font-weight:bold;' : ''}">${statusi}</span>
+      </div>
+      <div class="stok-actions">
+        <button class="btn-minus" onclick="ndryshoStok('${p.dataOrigjinale}', ${p.idxOrigjinal}, -1)">➖ Zbrit</button>
+        <button class="btn-plus" onclick="ndryshoStok('${p.dataOrigjinale}', ${p.idxOrigjinal}, 1)">➕ Shto</button>
+        <button class="btn-reset-stok" onclick="shiturNgaStoku('${p.dataOrigjinale}', ${p.idxOrigjinal})">✅ Shitur</button>
+      </div>
+    </div>`;
+  });
+  div.innerHTML = html;
+}
+
+function ndryshoStok(data, index, sasia) {
+  const p = databaza[data][index];
+  p.sasia = Math.max(0, p.sasia + sasia);
+  ruaj(); renderStoku();
+}
+
+function shiturNgaStoku(data, index) {
+  const p = databaza[data][index];
+  if (p.sasia === 0) { alert('Nuk ke në stok!'); return; }
+  const cmimi = prompt(`Për sa e shite "${p.emri}"? (lekë)`, p.shitja || '');
+  if (cmimi === null) return;
+  const shitja = parseFloat(cmimi) || 0;
+  if (shitja <= 0) { alert('Vendos çmim të saktë!'); return; }
+  p.shitja = shitja;
+  p.fitim = (shitja * p.sasia) - ((p.blerja * p.sasia) + p.shpenzime);
+  p.statusi = 'shitur';
+  ruaj(); renderStoku();
+}
+
+// ===== KALENDAR =====
+function nderroMuaj(drejtim) {
+  muajiAktual.setMonth(muajiAktual.getMonth() + drejtim);
+  ditaAktuale = null;
+  renderKalendar();
+}
+
+function renderKalendar() {
+  const viti = muajiAktual.getFullYear();
+  const muaji = muajiAktual.getMonth();
+  const emrat = ['Janar','Shkurt','Mars','Prill','Maj','Qershor','Korrik','Gusht','Shtator','Tetor','Nëntor','Dhjetor'];
+  
+  document.getElementById('kalendar-titull').textContent = `${emrat[muaji]} ${viti}`;
+
+  const dita1 = new Date(viti, muaji, 1).getDay();
+  const ditetEMuajit = new Date(viti, muaji + 1, 0).getDate();
+  const offseti = dita1 === 0 ? 6 : dita1 - 1;
+
+  const ditetEmra = ['Hën','Mar','Mër','Enj','Pre','Sht','Die'];
+  let html = '';
+  ditetEmra.forEach(e => html += `<div class="kalendar-dita-emri">${e}</div>`);
+
+  for (let i = 0; i < offseti; i++) {
+    html += '<div class="kalendar-dita pust"></div>';
+  }
+
+  const sot = new Date().toISOString().split('T')[0];
+
+  for (let d = 1; d <= ditetEMuajit; d++) {
+    const dataStr = `${viti}-${String(muaji+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const produktet = databaza[dataStr] || [];
+    const fitim = produktet.reduce((s, p) => s + (p.shitja > 0 ? p.fitim : 0), 0);
+    const kaShitje = produktet.some(p => p.shitja > 0);
+
+    let klasa = '';
+    if (kaShitje) klasa = fitim >= 0 ? 'fitim' : 'humbje';
+    if (dataStr === sot) klasa += ' sot';
+    if (dataStr === ditaAktuale) klasa += ' aktiv';
+
+    html += `<div class="kalendar-dita ${klasa}" onclick="klikoDiten('${dataStr}')">
+      <div class="numri">${d}</div>
+      ${kaShitje ? `<div class="fitimi-dites">${fitim >= 0 ? '+' : ''}${fitim.toFixed(0)}</div>` : ''}
+    </div>`;
+  }
+
+  document.getElementById('kalendar-grid').innerHTML = html;
+  if (ditaAktuale) shfaqDetajeKalendar(ditaAktuale);
+}
+
+function klikoDiten(data) {
+  ditaAktuale = data;
+  renderKalendar();
+  shfaqDetajeKalendar(data);
+}
+
+function shfaqDetajeKalendar(data) {
+  const div = document.getElementById('kalendar-detaje');
+  const produktet = databaza[data] || [];
+
+  if (produktet.length === 0) {
+    div.innerHTML = `<h4>📅 ${data}</h4><p style="color:#666;">Nuk ka produkte për këtë ditë.</p>`;
+    return;
+  }
+
+  let html = `<h4>📅 ${data} — ${produktet.length} produkte</h4>`;
+  let fitim = 0, shitje = 0, kosto = 0;
+  produktet.forEach(p => {
+    if (p.shitja > 0) { fitim += p.fitim; shitje += p.shitja * p.sasia; }
+    kosto += (p.blerja * p.sasia) + p.shpenzime;
+  });
+  const klasa = fitim >= 0 ? 'fitim' : 'humbje';
+  html += `<p style="font-size:12px; color:#888; margin-bottom:10px;">
+    💸 Kosto: ${kosto.toFixed(0)} | 💵 Të ardhura: ${shitje.toFixed(0)} | 
+    <span class="${klasa}">Fitim: ${fitim.toFixed(0)} lekë</span>
+  </p>`;
+  html += '<table><tr><th>Produkti</th><th>Blerje</th><th>Shitje</th><th>Sasi</th><th>Status</th></tr>';
+  produktet.forEach(p => {
+    const statusBadge = p.shitja > 0
+      ? '<span class="status-shitur">✅</span>'
+      : '<span class="status-papshit">⏳</span>';
+    html += `<tr>
+      <td>${p.emri}</td>
+      <td>${p.blerja}</td>
+      <td>${p.shitja > 0 ? p.shitja : '—'}</td>
+      <td>${p.sasia}</td>
+      <td>${statusBadge}</td>
+    </tr>`;
+  });
+  html += '</table>';
+  div.innerHTML = html;
+}
+
+// ===== GRAFIKE =====
+let chartDitor, chartMujor, chartKategori, chartKrahasim;
+
+function renderGrafiket() {
+  const datat = Object.keys(databaza).sort();
+
+  const d14 = datat.slice(-14);
+  const labelsD = d14.map(d => d.split('-').slice(1).join('/'));
+  const valuesD = d14.map(d => databaza[d].reduce((s, p) => s + (p.shitja > 0 ? p.fitim : 0), 0));
+
+  const mujor = {};
+  datat.forEach(data => {
+    const muaj = data.substring(0, 7);
+    if (!mujor[muaj]) mujor[muaj] = 0;
+    mujor[muaj] += databaza[data].reduce((s, p) => s + (p.shitja > 0 ? p.fitim : 0), 0);
+  });
+  const labelsM = Object.keys(mujor).sort();
+  const valuesM = labelsM.map(m => mujor[m]);
+
+  const opsione = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#e0e0e0', font: { size: 11 } } } },
+    scales: {
+      x: { ticks: { color: '#888', font: { size: 10 } }, grid: { color: '#2e2e3e' } },
+      y: { ticks: { color: '#888', font: { size: 10 } }, grid: { color: '#2e2e3e' } }
+    }
+  };
+
+  if (chartDitor) chartDitor.destroy();
+  if (chartMujor) chartMujor.destroy();
+
+  chartDitor = new Chart(document.getElementById('chart-ditor'), {
+    type: 'bar',
+    data: {
+      labels: labelsD.length ? labelsD : ['N/A'],
+      datasets: [{
+        label: 'Fitim (lekë)',
+        data: valuesD.length ? valuesD : [0],
+        backgroundColor: valuesD.map(v => v >= 0 ? 'rgba(46,204,113,0.7)' : 'rgba(231,76,60,0.7)'),
+        borderColor: valuesD.map(v => v >= 0 ? '#2ecc71' : '#e74c3c'),
+        borderWidth: 2, borderRadius: 6
+      }]
+    },
+    options: opsione
+  });
+
+  chartMujor = new Chart(document.getElementById('chart-mujor'), {
+    type: 'line',
+    data: {
+      labels: labelsM.length ? labelsM : ['N/A'],
+      datasets: [{
+        label: 'Fitim mujor (lekë)',
+        data: valuesM.length ? valuesM : [0],
+        backgroundColor: 'rgba(243,156,18,0.15)',
+        borderColor: '#f39c12',
+        borderWidth: 3, tension: 0.3, fill: true,
+        pointBackgroundColor: '#f39c12', pointRadius: 5
+      }]
+    },
+    options: opsione
+  });
+}
+
+// ===== KRAHASIM MUJOR =====
+function renderMujor() {
+  const div = document.getElementById('mujor-tabela');
+  const datat = Object.keys(databaza);
+
+  if (datat.length === 0) {
+    div.innerHTML = '<p class="vakant">Nuk ka të dhëna.</p>';
+    if (chartKrahasim) chartKrahasim.destroy();
+    return;
+  }
+
+  const mujor = {};
+  datat.forEach(data => {
+    const muaj = data.substring(0, 7);
+    if (!mujor[muaj]) mujor[muaj] = { produkte: 0, kosto: 0, shitje: 0, fitim: 0, ditë: new Set() };
+    databaza[data].forEach(p => {
+      mujor[muaj].produkte++;
+      mujor[muaj].kosto += (p.blerja * p.sasia) + p.shpenzime;
+      if (p.shitja > 0) {
+        mujor[muaj].shitje += p.shitja * p.sasia;
+        mujor[muaj].fitim += p.fitim;
+      }
+      mujor[muaj].ditë.add(data);
+    });
+  });
+
+  const muajt = Object.keys(mujor).sort();
+  const emrat = ['Janar','Shkurt','Mars','Prill','Maj','Qershor','Korrik','Gusht','Shtator','Tetor','Nëntor','Dhjetor'];
+
+  let html = `<div class="mujor-row header">
+    <div>Muaji</div>
+    <div>Ditë</div>
+    <div>Kosto</div>
+    <div>Të ardhura</div>
+    <div>Fitim</div>
+  </div>`;
+
+  let muajiPara = null;
+  muajt.forEach(m => {
+    const d = mujor[m];
+    const [viti, muajiNum] = m.split('-');
+    const emri = `${emrat[parseInt(muajiNum)-1]} ${viti}`;
+
+    let delta = '';
+    if (muajiPara !== null) {
+      const diff = d.fitim - mujor[muajiPara].fitim;
+      const përqindje = mujor[muajiPara].fitim !== 0 
+        ? ((diff / Math.abs(mujor[muajiPara].fitim)) * 100).toFixed(0)
+        : 0;
+      if (diff > 0) delta = `<span class="delta-up">▲ +${diff.toFixed(0)} (+${përqindje}%)</span>`;
+      else if (diff < 0) delta = `<span class="delta-down">▼ ${diff.toFixed(0)} (${përqindje}%)</span>`;
+      else delta = `<span class="delta-neutral">= 0</span>`;
+    } else {
+      delta = '<span class="delta-neutral">—</span>';
+    }
+
+    html += `<div class="mujor-row">
+      <div style="color:#f39c12;font-weight:bold;">${emri}</div>
+      <div>${d.ditë.size}</div>
+      <div>${d.kosto.toFixed(0)}</div>
+      <div>${d.shitje.toFixed(0)}</div>
+      <div class="${d.fitim>=0?'fitim':'humbje'}">${d.fitim.toFixed(0)} ${delta}</div>
+    </div>`;
+
+    muajiPara = m;
+  });
+
+  div.innerHTML = html;
+
+  const labels = muajt.map(m => {
+    const [viti, muajiNum] = m.split('-');
+    return `${emrat[parseInt(muajiNum)-1].substring(0,3)} ${viti.substring(2)}`;
+  });
+  const values = muajt.map(m => mujor[m].fitim);
+
+  if (chartKrahasim) chartKrahasim.destroy();
+  chartKrahasim = new Chart(document.getElementById('chart-krahasim'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Fitim mujor (lekë)',
+        data: values,
+        backgroundColor: values.map(v => v >= 0 ? 'rgba(243,156,18,0.7)' : 'rgba(231,76,60,0.7)'),
+        borderColor: values.map(v => v >= 0 ? '#f39c12' : '#e74c3c'),
+        borderWidth: 2, borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#e0e0e0', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#888', font: { size: 10 } }, grid: { color: '#2e2e3e' } },
+        y: { ticks: { color: '#888', font: { size: 10 } }, grid: { color: '#2e2e3e' } }
+      }
+    }
+  });
+}
+
+// ===== BACKUP AUTOMATIK =====
+const BACKUP_KEY = 'carzone_backup_auto';
+const BACKUP_AUTO_INFO_KEY = 'carzone_backup_auto_info';
+const MAX_BACKUPES = 7;
+
+function getBackupet() {
+  return JSON.parse(localStorage.getItem(BACKUP_KEY)) || [];
+}
+
+function ruajBackupet(lista) {
+  localStorage.setItem(BACKUP_KEY, JSON.stringify(lista));
+}
+
+function kontrolloBackupAutomatik() {
+  try {
+    const sot = new Date().toISOString().split('T')[0];
+    const backupet = getBackupet();
+    const databazaStr = JSON.stringify(databaza);
+    const hash = btoa(unescape(encodeURIComponent(databazaStr))).substring(0, 32);
+    
+    const info = JSON.parse(localStorage.getItem(BACKUP_AUTO_INFO_KEY)) || { hash: '', data: '' };
+    
+    if (info.data === sot && info.hash === hash) {
+      return;
+    }
+    
+    const backupIRi = {
+      data: sot,
+      ora: new Date().toLocaleTimeString('sq-AL', { hour: '2-digit', minute: '2-digit' }),
+      hash: hash,
+      madhesia: new Blob([databazaStr]).size,
+      numriDiteve: Object.keys(databaza).length,
+      numriProdukteve: Object.values(databaza).reduce((s, arr) => s + arr.length, 0),
+      databaza: JSON.parse(databazaStr)
+    };
+    
+    let backupetRe = backupet.filter(b => b.data !== sot);
+    backupetRe.unshift(backupIRi);
+    
+    if (backupetRe.length > MAX_BACKUPES) {
+      backupetRe = backupetRe.slice(0, MAX_BACKUPES);
+    }
+    
+    ruajBackupet(backupetRe);
+    localStorage.setItem(BACKUP_AUTO_INFO_KEY, JSON.stringify({ hash, data: sot }));
+  } catch (e) {
+    console.error('Gabim backup:', e);
+  }
+}
+
+function bejBackupManual() {
+  kontrolloBackupAutomatik();
+  alert('✅ Backup u krijua me sukses!');
+  renderBackupInfo();
+}
+
+function riktheBackup(index) {
+  const backupet = getBackupet();
+  const backup = backupet[index];
+  if (!backup) return;
+  
+  if (!confirm(`Rikthe të dhënat nga backup i datës ${backup.data} ora ${backup.ora}?\n\nKjo do të zëvendësojë të dhënat aktuale!`)) return;
+  
+  databaza = JSON.parse(JSON.stringify(backup.databaza));
+  ruaj();
+  alert('✅ Të dhënat u rikthyen me sukses!');
+  renderBackupInfo();
+  renderDita();
+}
+
+function fshiBackup(index) {
+  if (!confirm('Fshi këtë backup?')) return;
+  const backupet = getBackupet();
+  backupet.splice(index, 1);
+  ruajBackupet(backupet);
+  renderBackupInfo();
+}
+
+function shkarkoBackup(index) {
+  const backupet = getBackupet();
+  const backup = backupet[index];
+  if (!backup) return;
+  
+  const data = JSON.stringify(backup.databaza, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `carzone_backup_${backup.data}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ===== BACKUP INFO =====
+function renderBackupInfo() {
+  kontrolloBackupAutomatik();
+  
+  const backupet = getBackupet();
+  const sot = new Date().toISOString().split('T')[0];
+  const kaBackupSot = backupet.some(b => b.data === sot);
+  
+  const autoInfo = document.getElementById('backup-auto-info');
+  if (autoInfo) {
+    const datat = Object.keys(databaza).length;
+    const madhesia = new Blob([JSON.stringify(databaza)]).size;
+    autoInfo.innerHTML = `
+      <div class="backup-info-box">
+        ✅ <b>Backup automatik aktiv</b><br>
+        📊 Ditë të ruajtura: <b>${datat}</b> • 💾 Madhësia: <b>${(madhesia/1024).toFixed(2)} KB</b><br>
+        🔄 Backup i sotëm: <b>${kaBackupSot ? '✅ Krijuar' : '⏳ Në pritje'}</b> • 📁 Totali: <b>${backupet.length}/${MAX_BACKUPES}</b>
+      </div>
+    `;
+  }
+  
+  const listaDiv = document.getElementById('lista-backupesh');
+  if (listaDiv) {
+    if (backupet.length === 0) {
+      listaDiv.innerHTML = '<p class="vakant">Nuk ka backupe ende.</p>';
+    } else {
+      let html = '<table><tr><th>Data</th><th>Ora</th><th>Ditë</th><th>Produkte</th><th>Madhësia</th><th>Veprime</th></tr>';
+      backupet.forEach((b, i) => {
+        html += `<tr>
+          <td style="color:#f39c12;font-weight:bold;">${b.data}</td>
+          <td>${b.ora}</td>
+          <td>${b.numriDiteve}</td>
+          <td>${b.numriProdukteve}</td>
+          <td>${(b.madhesia/1024).toFixed(2)} KB</td>
+          <td>
+            <button class="btn-edit" onclick="riktheBackup(${i})" title="Rikthe">🔄</button>
+            <button class="btn-fatura" onclick="shkarkoBackup(${i})" title="Shkarko">📥</button>
+            <button class="btn-del" onclick="fshiBackup(${i})" title="Fshi">✖</button>
+          </td>
+        </tr>`;
+      });
+      html += '</table>';
+      listaDiv.innerHTML = html;
+    }
+  }
+  
+  const div = document.getElementById('backup-info');
+  if (div) {
+    const datat = Object.keys(databaza).length;
+    const madhesia = new Blob([JSON.stringify(databaza)]).size;
+    div.innerHTML = `
+      <p>📊 <b>${datat}</b> ditë të ruajtura</p>
+      <p>💾 Madhësia: <b>${(madhesia/1024).toFixed(2)} KB</b></p>
+      <p style="color:#666;margin-top:10px;">💡 Backupe automatike ruhen 7 ditët e fundit. Për siguri shtesë, shkarko backup JSON rregullisht!</p>
+    `;
+  }
+}
+
+// ===== FATURA =====
+let faturaData = { data: null, index: null };
+
+function shfaqFatura(data, index) {
+  const p = databaza[data][index];
+  if (!p) { alert('Produkti nuk u gjet!'); return; }
+  if (p.shitja <= 0) { alert('Ky produkt nuk është shitur ende!'); return; }
+  
+  faturaData = { data, index };
+  
+  const nrFatures = 'CZ-' + data.replace(/-/g, '') + '-' + (index + 1).toString().padStart(3, '0');
+  const totali = p.shitja * p.sasia;
+  
+  const faturaHTML = `
+    <div class="fatura-header">
+      <div class="fatura-logo">
+        <div class="fatura-logo-icon">🚗</div>
+        <div>
+          <h2>CARZONE</h2>
+          <p>PJESË KËMBIMI AUTO</p>
+        </div>
+      </div>
+      <div class="fatura-info">
+        <h3>FATURË</h3>
+        <p><b>Nr:</b> ${nrFatures}</p>
+        <p><b>Data:</b> ${data}</p>
+      </div>
+    </div>
+    
+    <table class="fatura-tabela">
+      <thead>
+        <tr>
+          <th style="text-align:left;">Produkti</th>
+          <th>Çmimi</th>
+          <th>Sasia</th>
+          <th>Totali</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-majtas">${p.emri}</td>
+          <td>${p.shitja.toFixed(0)} lekë</td>
+          <td>${p.sasia}</td>
+          <td style="font-weight:bold;color:#f39c12;">${totali.toFixed(0)} lekë</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div class="fatura-total">
+      <div class="fatura-total-rresht">
+        <span>Nëntotali:</span>
+        <span>${totali.toFixed(0)} lekë</span>
+      </div>
+      <div class="fatura-total-rresht final">
+        <span>TOTALI PËR PAGESË:</span>
+        <span>${totali.toFixed(0)} LEKË</span>
+      </div>
+    </div>
+    
+    <div class="fatura-footer">
+      <p>Faleminderit që zgjodhët <b>CarZone</b>!</p>
+      <p>Për çdo informacion ose garanci, ju lutem kontaktoni:</p>
+      <p>📞 Telefon: _____________ | 📧 Email: _____________</p>
+      <p class="faleminderit">🚗 FALEMINDERIT PËR BESIMIN TUAJ! 🚗</p>
+    </div>
+    
+    <div class="fatura-btns">
+      <button class="fatura-print" onclick="printoFaturen()">🖨️ Printo Faturën</button>
+      <button class="fatura-close" onclick="mbyllFaturen()">✖ Mbyll</button>
+    </div>
+  `;
+  
+  document.getElementById('faturaContent').innerHTML = faturaHTML;
+  document.getElementById('modalFatura').classList.add('open');
+}
+
+function printoFaturen() {
+  window.print();
+}
+
+function mbyllFaturen() {
+  document.getElementById('modalFatura').classList.remove('open');
+  faturaData = { data: null, index: null };
+}
+
+document.getElementById('modalFatura').addEventListener('click', function(e) {
+  if (e.target === this) mbyllFaturen();
+});
+
+// ===== BACKUP MANUAL =====
+function eksportoSkedar() {
+  const data = JSON.stringify(databaza, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `carzone_backup_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function eksportoCSV() {
+  let csv = 'Data,Produkti,Blerje,Shitje,Sasi,Shpenzime,Fitim,Statusi\n';
+  Object.keys(databaza).sort().forEach(data => {
+    databaza[data].forEach(p => {
+      csv += `${data},"${p.emri}",${p.blerja},${p.shitja},${p.sasia},${p.shpenzime},${p.fitim},${p.shitja>0?'Shitur':'Papshit'}\n`;
+    });
+  });
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `carzone_export_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importoSkedar(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (confirm('Importo? Do të zëvendësohen të dhënat aktuale!')) {
+        databaza = data; ruaj();
+        alert('✅ Importuar!');
+        showTab('shto');
+      }
+    } catch (err) { alert('❌ File i gabuar!'); }
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('modalEdit').addEventListener('click', function(e) {
+  if (e.target === this) mbyllModalEdit();
+});
+
+document.getElementById('modalMenaxhoProduktet').addEventListener('click', function(e) {
+  if (e.target === this) mbyllMenaxhoProduktet();
+});
+
+// ===== START =====
+aplikoProduktInput();
+renderDita();
+renderProduktOptions();
+
+setTimeout(kontrolloBackupAutomatik, 1000);
+setInterval(kontrolloBackupAutomatik, 5 * 60 * 1000);
+</script>
+</body>
+</html>
