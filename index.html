@@ -534,6 +534,19 @@
     transition: transform 0.2s;
   }
   .toggle-switch.active::after { transform: translateX(22px); }
+
+  /* Status bar për sinkronizimin */
+  .sync-status {
+    position: fixed; bottom: 16px; right: 16px;
+    background: #1a1a24; border: 1px solid #2e2e3e;
+    padding: 10px 16px; border-radius: 10px;
+    font-size: 12px; font-weight: 600; z-index: 2000;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    transition: all 0.3s;
+  }
+  .sync-status.loading { color: #f39c12; border-color: #f39c12; }
+  .sync-status.success { color: #2ecc71; border-color: #2ecc71; }
+  .sync-status.error { color: #e74c3c; border-color: #e74c3c; }
 </style>
 </head>
 <body>
@@ -688,7 +701,7 @@
     <div class="card">
       <h3>💾 Backup Automatik</h3>
       <p style="color:#999; margin-bottom:12px; font-size:12px;">
-        Aplikacioni bën <b>backup automatik çdo ditë</b> dhe ruan 7 kopjet e fundit.
+        Aplikacioni ruan të dhënat në cloud (JSONBin). Nëse interneti bie, ai ruan lokalisht.
       </p>
       <div id="backup-auto-info"></div>
       <h3 style="margin-top:20px;">📁 Backupe të Ruajtura</h3>
@@ -710,6 +723,9 @@
     </div>
   </div>
 </div>
+
+<!-- Statusi i sinkronizimit -->
+<div class="sync-status" id="syncStatus" style="display:none;"></div>
 
 <div class="modal-overlay" id="modalEdit">
   <div class="modal">
@@ -772,22 +788,96 @@
 </div>
 
 <script>
-// ===== LISTA E PRODUKTEVE (FILLIMISHT BOSH) =====
-let PRODUKTET_E_PARACAKTUARA = JSON.parse(localStorage.getItem('carzone_produktet')) || [];
+// =====================================================================
+// KONFIGURIMI I JSONBIN (CLOUD DATABASE)
+// =====================================================================
+const JSONBIN_API_KEY = "$2a$10$McZQKJ6e0DX.TKI3yVGz3.KOvxkuJR9cd0u3XNcD4F7.VS3pY704O";
+const JSONBIN_BIN_ID = "6b009ee8ac6210605a983242";
+const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 
+// ===== LISTA E PRODUKTEVE =====
+let PRODUKTET_E_PARACAKTUARA = JSON.parse(localStorage.getItem('carzone_produktet')) || [];
 let useDropdown = JSON.parse(localStorage.getItem('carzone_use_dropdown'));
 if (useDropdown === null) useDropdown = true;
 
-// ===== DATABASE =====
+// ===== DATABASE LOKALE (CACHE) =====
 let databaza = JSON.parse(localStorage.getItem('carzone_db_v4')) || {};
 let currentEdit = { data: null, index: null };
 let currentFilter = 'tëgjitha';
 let currentStokFilter = 'tëgjitha';
 let muajiAktual = new Date();
 let ditaAktuale = null;
+let kaNdryshimeTeParuajtura = false;
 
 document.getElementById('data').value = new Date().toISOString().split('T')[0];
 document.getElementById('data').addEventListener('change', renderDita);
+
+// =====================================================================
+// SINKRONIZIMI ME CLOUD (JSONBIN)
+// =====================================================================
+function shfaqStatusin(mesazhi, tipi) {
+  const el = document.getElementById('syncStatus');
+  el.textContent = mesazhi;
+  el.className = 'sync-status ' + tipi;
+  el.style.display = 'block';
+  if (tipi === 'success' || tipi === 'error') {
+    setTimeout(() => { el.style.display = 'none'; }, 3000);
+  }
+}
+
+async function lexoNgaCloud() {
+  shfaqStatusin('⏳ Duke lexuar nga cloud...', 'loading');
+  try {
+    const res = await fetch(`${JSONBIN_URL}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    if (!res.ok) throw new Error('Gabim ne lexim');
+    const json = await res.json();
+    let data = json.record;
+    if (data && data.carzone !== undefined) data = data.carzone;
+    
+    if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+      databaza = data;
+      localStorage.setItem('carzone_db_v4', JSON.stringify(databaza));
+      shfaqStatusin('✅ Të dhënat u lexuan nga cloud!', 'success');
+      renderDita();
+      if (!document.getElementById('seksioni-historik').classList.contains('hidden')) renderHistorik();
+      if (!document.getElementById('seksioni-stoku').classList.contains('hidden')) renderStoku();
+    } else {
+      shfaqStatusin('ℹ️ Cloud është bosh. Filloj me të dhëna lokale.', 'success');
+    }
+  } catch (e) {
+    console.error(e);
+    shfaqStatusin('⚠️ Nuk u lidh me cloud. Përdor të dhëna lokale.', 'error');
+  }
+}
+
+async function ruajNeCloud() {
+  shfaqStatusin('⏳ Duke ruajtur në cloud...', 'loading');
+  try {
+    const res = await fetch(JSONBIN_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_API_KEY
+      },
+      body: JSON.stringify({ carzone: databaza })
+    });
+    if (!res.ok) throw new Error('Gabim ne ruajtje');
+    shfaqStatusin('✅ Të dhënat u ruajtën në cloud!', 'success');
+    kaNdryshimeTeParuajtura = false;
+  } catch (e) {
+    console.error(e);
+    shfaqStatusin('⚠️ Nuk u ruajt në cloud! Kontrollo internetin.', 'error');
+    kaNdryshimeTeParuajtura = true;
+  }
+}
+
+// Ruaj lokalisht dhe dërgo në cloud
+function ruaj() {
+  localStorage.setItem('carzone_db_v4', JSON.stringify(databaza));
+  ruajNeCloud();
+}
 
 // ===== MENU MOBILE =====
 function hapMenu() {
@@ -851,10 +941,11 @@ function renderMenaxhoProduktet() {
     list.innerHTML = '<div class="product-manager-empty">Nuk ka produkte të shtuara. Shkruaj më sipër për të shtuar një të re.</div>';
   } else {
     let html = '';
-    PRODUKTET_E_PARACAKTUARA.slice().sort().forEach((p, i) => {
+    PRODUKTET_E_PARACAKTUARA.slice().sort().forEach((p) => {
+      const idx = PRODUKTET_E_PARACAKTUARA.indexOf(p);
       html += `<div class="product-manager-item">
         <span>${p}</span>
-        <button class="btn-del" onclick="fshiProduktTeRi(${i})">✖</button>
+        <button class="btn-del" onclick="fshiProduktTeRi(${idx})">✖</button>
       </div>`;
     });
     list.innerHTML = html;
@@ -1025,7 +1116,6 @@ function shtoProdukt() {
   const statusi = shitja > 0 ? 'shitur' : 'papshit';
 
   if (!databaza[data]) databaza[data] = [];
-  // Hequr 'kategori' nga objekti
   databaza[data].push({ emri, blerja, shitja, sasia, shpenzime, fitim, statusi });
 
   ruaj(); renderDita();
@@ -1034,8 +1124,6 @@ function shtoProdukt() {
   document.getElementById('shpenzime').value = 0;
   produktInput.focus();
 }
-
-function ruaj() { localStorage.setItem('carzone_db_v4', JSON.stringify(databaza)); }
 
 // ===== DITA =====
 function renderDita() {
@@ -1055,7 +1143,6 @@ function renderDita() {
   let html = '', totalFitim = 0, totalKosto = 0, totalShitje = 0;
   let rreshta = '';
 
-  // Nuk ka më grupim sipas kategorive
   produktet.forEach(p => {
     const idxOrig = databaza[data].indexOf(p);
     const eshteShitur = p.shitja > 0;
@@ -1437,7 +1524,7 @@ function shfaqDetajeKalendar(data) {
 }
 
 // ===== GRAFIKE =====
-let chartDitor, chartMujor, chartKategori, chartKrahasim;
+let chartDitor, chartMujor, chartKrahasim;
 
 function renderGrafiket() {
   const datat = Object.keys(databaza).sort();
@@ -1598,153 +1685,29 @@ function renderMujor() {
   });
 }
 
-// ===== BACKUP AUTOMATIK =====
-const BACKUP_KEY = 'carzone_backup_auto';
-const BACKUP_AUTO_INFO_KEY = 'carzone_backup_auto_info';
-const MAX_BACKUPES = 7;
-
-function getBackupet() {
-  return JSON.parse(localStorage.getItem(BACKUP_KEY)) || [];
-}
-
-function ruajBackupet(lista) {
-  localStorage.setItem(BACKUP_KEY, JSON.stringify(lista));
-}
-
-function kontrolloBackupAutomatik() {
-  try {
-    const sot = new Date().toISOString().split('T')[0];
-    const backupet = getBackupet();
-    const databazaStr = JSON.stringify(databaza);
-    const hash = btoa(unescape(encodeURIComponent(databazaStr))).substring(0, 32);
-    
-    const info = JSON.parse(localStorage.getItem(BACKUP_AUTO_INFO_KEY)) || { hash: '', data: '' };
-    
-    if (info.data === sot && info.hash === hash) {
-      return;
-    }
-    
-    const backupIRi = {
-      data: sot,
-      ora: new Date().toLocaleTimeString('sq-AL', { hour: '2-digit', minute: '2-digit' }),
-      hash: hash,
-      madhesia: new Blob([databazaStr]).size,
-      numriDiteve: Object.keys(databaza).length,
-      numriProdukteve: Object.values(databaza).reduce((s, arr) => s + arr.length, 0),
-      databaza: JSON.parse(databazaStr)
-    };
-    
-    let backupetRe = backupet.filter(b => b.data !== sot);
-    backupetRe.unshift(backupIRi);
-    
-    if (backupetRe.length > MAX_BACKUPES) {
-      backupetRe = backupetRe.slice(0, MAX_BACKUPES);
-    }
-    
-    ruajBackupet(backupetRe);
-    localStorage.setItem(BACKUP_AUTO_INFO_KEY, JSON.stringify({ hash, data: sot }));
-  } catch (e) {
-    console.error('Gabim backup:', e);
-  }
-}
-
-function bejBackupManual() {
-  kontrolloBackupAutomatik();
-  alert('✅ Backup u krijua me sukses!');
-  renderBackupInfo();
-}
-
-function riktheBackup(index) {
-  const backupet = getBackupet();
-  const backup = backupet[index];
-  if (!backup) return;
-  
-  if (!confirm(`Rikthe të dhënat nga backup i datës ${backup.data} ora ${backup.ora}?\n\nKjo do të zëvendësojë të dhënat aktuale!`)) return;
-  
-  databaza = JSON.parse(JSON.stringify(backup.databaza));
-  ruaj();
-  alert('✅ Të dhënat u rikthyen me sukses!');
-  renderBackupInfo();
-  renderDita();
-}
-
-function fshiBackup(index) {
-  if (!confirm('Fshi këtë backup?')) return;
-  const backupet = getBackupet();
-  backupet.splice(index, 1);
-  ruajBackupet(backupet);
-  renderBackupInfo();
-}
-
-function shkarkoBackup(index) {
-  const backupet = getBackupet();
-  const backup = backupet[index];
-  if (!backup) return;
-  
-  const data = JSON.stringify(backup.databaza, null, 2);
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `carzone_backup_${backup.data}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 // ===== BACKUP INFO =====
 function renderBackupInfo() {
-  kontrolloBackupAutomatik();
-  
-  const backupet = getBackupet();
-  const sot = new Date().toISOString().split('T')[0];
-  const kaBackupSot = backupet.some(b => b.data === sot);
-  
-  const autoInfo = document.getElementById('backup-auto-info');
-  if (autoInfo) {
-    const datat = Object.keys(databaza).length;
-    const madhesia = new Blob([JSON.stringify(databaza)]).size;
-    autoInfo.innerHTML = `
-      <div class="backup-info-box">
-        ✅ <b>Backup automatik aktiv</b><br>
-        📊 Ditë të ruajtura: <b>${datat}</b> • 💾 Madhësia: <b>${(madhesia/1024).toFixed(2)} KB</b><br>
-        🔄 Backup i sotëm: <b>${kaBackupSot ? '✅ Krijuar' : '⏳ Në pritje'}</b> • 📁 Totali: <b>${backupet.length}/${MAX_BACKUPES}</b>
-      </div>
-    `;
-  }
-  
-  const listaDiv = document.getElementById('lista-backupesh');
-  if (listaDiv) {
-    if (backupet.length === 0) {
-      listaDiv.innerHTML = '<p class="vakant">Nuk ka backupe ende.</p>';
-    } else {
-      let html = '<table><tr><th>Data</th><th>Ora</th><th>Ditë</th><th>Produkte</th><th>Madhësia</th><th>Veprime</th></tr>';
-      backupet.forEach((b, i) => {
-        html += `<tr>
-          <td style="color:#f39c12;font-weight:bold;">${b.data}</td>
-          <td>${b.ora}</td>
-          <td>${b.numriDiteve}</td>
-          <td>${b.numriProdukteve}</td>
-          <td>${(b.madhesia/1024).toFixed(2)} KB</td>
-          <td>
-            <button class="btn-edit" onclick="riktheBackup(${i})" title="Rikthe">🔄</button>
-            <button class="btn-fatura" onclick="shkarkoBackup(${i})" title="Shkarko">📥</button>
-            <button class="btn-del" onclick="fshiBackup(${i})" title="Fshi">✖</button>
-          </td>
-        </tr>`;
-      });
-      html += '</table>';
-      listaDiv.innerHTML = html;
-    }
-  }
-  
-  const div = document.getElementById('backup-info');
+  const div = document.getElementById('backup-auto-info');
   if (div) {
     const datat = Object.keys(databaza).length;
     const madhesia = new Blob([JSON.stringify(databaza)]).size;
     div.innerHTML = `
+      <div class="backup-info-box">
+        ☁️ <b>Cloud Sync aktiv (JSONBin)</b><br>
+        📊 Ditë të ruajtura: <b>${datat}</b> • 💾 Madhësia: <b>${(madhesia/1024).toFixed(2)} KB</b><br>
+        🔗 Bin ID: <b>${JSONBIN_BIN_ID.substring(0,8)}...</b>
+      </div>
+    `;
+  }
+  
+  const div2 = document.getElementById('backup-info');
+  if (div2) {
+    const datat = Object.keys(databaza).length;
+    const madhesia = new Blob([JSON.stringify(databaza)]).size;
+    div2.innerHTML = `
       <p>📊 <b>${datat}</b> ditë të ruajtura</p>
       <p>💾 Madhësia: <b>${(madhesia/1024).toFixed(2)} KB</b></p>
-      <p style="color:#666;margin-top:10px;">💡 Backupe automatike ruhen 7 ditët e fundit. Për siguri shtesë, shkarko backup JSON rregullisht!</p>
+      <p style="color:#666;margin-top:10px;">💡 Të dhënat sinkronizohen automatikisht me cloud-in sa herë bën një ndryshim.</p>
     `;
   }
 }
@@ -1883,6 +1846,10 @@ function importoSkedar(event) {
   reader.readAsText(file);
 }
 
+function bejBackupManual() {
+  ruajNeCloud();
+}
+
 document.getElementById('modalEdit').addEventListener('click', function(e) {
   if (e.target === this) mbyllModalEdit();
 });
@@ -1896,8 +1863,8 @@ aplikoProduktInput();
 renderDita();
 renderProduktOptions();
 
-setTimeout(kontrolloBackupAutomatik, 1000);
-setInterval(kontrolloBackupAutomatik, 5 * 60 * 1000);
+// Lexo nga cloud menjëherë pas ngarkimit
+lexoNgaCloud();
 </script>
 </body>
 </html>
